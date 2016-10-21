@@ -1,0 +1,11 @@
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/CMakeFiles/edit_cache.dir
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/CMakeFiles/rebuild_cache.dir
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/CMakeFiles/test.dir
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/CMakeFiles/ApiClient.dir
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/ext/CMakeFiles/test.dir
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/ext/CMakeFiles/edit_cache.dir
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/ext/CMakeFiles/rebuild_cache.dir
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/ext/ApiCodec/CMakeFiles/test.dir
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/ext/ApiCodec/CMakeFiles/rebuild_cache.dir
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/ext/ApiCodec/CMakeFiles/edit_cache.dir
+/home/abdullah/Documents/imerir/ROBO NAIO/API_NAIO/ext/ApiCodec/CMakeFiles/libapicodec.dir
