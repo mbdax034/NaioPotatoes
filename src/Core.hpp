@@ -11,11 +11,11 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <zlib.h>
-#include <fstream>
-
+#include <iostream>
+#include <cstdlib>
+#include <thread>
 
 ///SDL 2.0 LIB
-#include <SDL2/SDL_video.h>
 #include <SDL2/SDL_system.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -34,13 +34,17 @@
 #include "ApiLidarPacket.hpp"
 #include "ApiPostPacket.hpp"
 #include "ApiGpsPacket.hpp"
-#include "ApiStereoCameraPacket.hpp"
 #include "ApiWatchdogPacket.hpp"
+
+#include "Leaning.hpp"
+#include "Etalonnage.hpp"
 
 #define PORT_ROBOT_MOTOR 5555
 #define DEFAULT_HOST_ADDRESS "10.0.1.1"
 
-#define CONNECT_TO_ROBOT 1
+#define CONNECT_TO_ROBOT    1
+#define SCREEN_WIDTH        800
+#define SCREEN_HEIGHT       600
 
 using namespace std;
 using namespace std::chrono;
@@ -56,11 +60,6 @@ public:
 
 	const int64_t MAIN_GRAPHIC_DISPLAY_RATE_MS = 100;
 	const int64_t SERVER_SEND_COMMAND_RATE_MS = 25;
-	const int64_t WAIT_SERVER_IMAGE_TIME_RATE_MS = 10;
-	const int64_t IMAGE_SERVER_WATCHDOG_SENDING_RATE_MS = 100;
-	const int64_t IMAGE_PREPARING_RATE_MS = 25;
-
-	const int64_t TIME_BEFORE_IMAGE_LOST_MS = 500;
 public:
 
 	Core( );
@@ -82,12 +81,6 @@ private:
 	// main server 5555 thread function
 	void server_read_thread( );
 	void server_write_thread( );
-	void image_preparer_thread( );
-
-	// images server 5557 thread function
-	void image_server_thread( );
-	void image_server_read_thread( );
-	void image_server_write_thread( );
 
 	// communications
 	void manageReceivedPacket( BaseNaio01PacketPtr packetPtr );
@@ -104,19 +97,18 @@ private:
 	void draw_lidar( uint16_t lidar_distance_[271] );
 	void draw_text( char gyro_buff[100], int x, int y );
 	void draw_red_post( int x, int y );
-	void draw_images( );
+    void draw_leaning_angle();
 private:
-	// Le logs
-	ofstream logODO;
-	ofstream logAccelo;
-	ofstream logGyro;
-	
-	
+    
+    Leaning leaning;
+    
 	// thread part
+    void drawIMUAxis();
 	bool stopThreadAsked_;
 	bool threadStarted_;
 	std::thread graphicThread_;
 
+    bool etalonnageLaunched = false;
 	bool stopServerReadThreadAsked_;
 	bool serverReadthreadStarted_;
 	std::thread serverReadThread_;
@@ -147,7 +139,7 @@ private:
 
 	std::mutex ha_accel_packet_ptr_access_;
 	HaAcceleroPacketPtr ha_accel_packet_ptr_;
-
+private:
 	std::mutex ha_odo_packet_ptr_access;
 	HaOdoPacketPtr ha_odo_packet_ptr_;
 
@@ -157,15 +149,11 @@ private:
 	std::mutex ha_gps_packet_ptr_access_;
 	HaGpsPacketPtr ha_gps_packet_ptr_;
 
-	std::mutex api_stereo_camera_packet_ptr_access_;
-	ApiStereoCameraPacketPtr api_stereo_camera_packet_ptr_;
-	std::mutex last_images_buffer_access_;
-	uint8_t last_images_buffer_[ 4000000 ];
-	ApiStereoCameraPacket::ImageType last_image_type_;
-
 	// ia part
 	ControlType controlType_;
 
+    Etalonnage* etalonnage;
+    
 	SDL_Window* screen_;
 	SDL_Renderer* renderer_;
 
@@ -173,45 +161,12 @@ private:
 	SDL_Color sdl_color_white_;
 	TTF_Font* ttf_font_;
 
-	bool asked_start_video_;
-	bool asked_stop_video_;
-
-	std::thread image_prepared_thread_;
-
 	uint64_t last_motor_time_;
-
-	int image_socket_desc_;
-	bool imageSocketConnected_;
-	Naio01Codec imageNaioCodec_;
-
-	bool stopImageServerThreadAsked_;
-	bool imageServerThreadStarted_;
-	std::thread imageServerThread_;
-
-	bool stopImageServerReadThreadAsked_;
-	bool imageServerReadthreadStarted_;
-	std::thread imageServerReadThread_;
-
-	bool stopImageServerWriteThreadAsked_;
-	bool imageServerWriteThreadStarted_;
-	std::thread imageServerWriteThread_;
-
 	std::mutex last_motor_access_;
 	int8_t last_left_motor_;
 	int8_t last_right_motor_;
 
 	uint64_t last_image_received_time_;
-	
-	
-	float robot_gx; 
-	float robot_gy;
-	float robot_gz; 
-	float robot_ax; 
-	float robot_ay; 
-	float robot_az; 
-	float robot_mx; 
-	float robot_my; 
-	float robot_mz;
 };
 
 #endif
