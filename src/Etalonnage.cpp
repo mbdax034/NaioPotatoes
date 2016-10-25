@@ -67,6 +67,11 @@ void Etalonnage::etalonnageGyro(int gyroX, int gyroY, int gyroZ){
             this->gyroX += gyroX;
             this->gyroY += gyroY;
             this->gyroZ += gyroZ;
+            
+
+            this->etalonnageGyroMinMax(gyroZ);
+            
+            
             counterGyro++;
         } else {
             this->gyroEtalonnageDone = true;
@@ -74,6 +79,23 @@ void Etalonnage::etalonnageGyro(int gyroX, int gyroY, int gyroZ){
             this->gyroY = this->gyroY/1000;
             this->gyroZ = this->gyroZ/1000;
             std::cout << "Gyrometer [x,y,z] : [" << this->gyroX << "," << this->gyroY << "," << gyroZ << "]" << std::endl;
+            std::cout << "fuck it !!!!! : " << gyroZmax << "," << gyroZmin << std::endl;
+        }
+    }
+}
+
+void Etalonnage::etalonnageGyroMinMax(int gyroZ){
+    if(!this->gyroEtalonnageDone){
+        if(this->counterGyro < 1000){
+            if (gyroZ > this->gyroZmax){
+                this->gyroZmax = gyroZ;
+                std::cout << "Gyro Z Max :" << gyroZmax << std::endl;
+            }
+            if (gyroZ < this->gyroZmin){
+                this->gyroZmin = gyroZ;
+                std::cout << "Gyro Z Min :" << gyroZmin << std::endl;
+            }
+            counterGyro++;
         }
     }
 }

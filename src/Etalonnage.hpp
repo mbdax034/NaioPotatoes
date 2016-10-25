@@ -29,6 +29,8 @@ class Etalonnage {
     int gyroX;
     int gyroY;
     int gyroZ;
+    int gyroZmin = 0;
+    int gyroZmax = 0;
     int counterGyro;
     bool gyroEtalonnageDone;
     
@@ -37,6 +39,7 @@ class Etalonnage {
     void etalonnageAccel(int accelX, int accelY, int accelZ);
     void etalonnageMagneto(int gyroX, int gyroY, int gyroZ);
     void etalonnageGyro(int gyroX, int gyroY, int gyroZ);
+    void etalonnageGyroMinMax(int gyroZ);
     
     int getAccelX(){return accelX;};
     int getAccelY(){return accelY;};
@@ -50,6 +53,8 @@ class Etalonnage {
     int getGyroY(){return gyroY;};
     int getGyroZ(){return gyroZ;};
     
+    int getGyroZMax(){return gyroZmax;};
+    int getGyroZMin(){return gyroZmin;};
 };
 
 

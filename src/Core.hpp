@@ -11,18 +11,14 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <zlib.h>
-
-#include <fstream>
-
 #include <iostream>
 #include <cstdlib>
 #include <thread>
 
-
 ///SDL 2.0 LIB
 #include <SDL2/SDL_system.h>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
+#include <SDL2_ttf/SDL_ttf.h>
 
 ///APICODEC LIB
 #include "Naio01Codec.hpp"
@@ -37,9 +33,7 @@
 #include "ApiStatusPacket.hpp"
 #include "ApiLidarPacket.hpp"
 #include "ApiPostPacket.hpp"
-
 #include "ApiGpsPacket.hpp"
-
 #include "ApiWatchdogPacket.hpp"
 
 #include "Leaning.hpp"
@@ -48,10 +42,7 @@
 #define PORT_ROBOT_MOTOR 5555
 #define DEFAULT_HOST_ADDRESS "10.0.1.1"
 
-
-#define CONNECT_TO_ROBOT    0
-
-
+#define CONNECT_TO_ROBOT    1
 #define SCREEN_WIDTH        800
 #define SCREEN_HEIGHT       600
 
@@ -103,18 +94,18 @@ private:
 	bool manageSDLKeyboard();
 
 	void draw_robot();
-	void draw_bumper();
 	void draw_lidar( uint16_t lidar_distance_[271] );
 	void draw_text( char gyro_buff[100], int x, int y );
 	void draw_red_post( int x, int y );
-
-private:
     void draw_leaning_angle();
+    int64_t getTimeMsReference(){return msReference;};
+    void calculAngle(HaGyroPacketPtr newPacket, HaGyroPacketPtr oldPacket);
 private:
     
     Leaning leaning;
+    int64_t msReference = 0;
+    double angle = 0;
     
-
 	// thread part
     void drawIMUAxis();
 	bool stopThreadAsked_;
@@ -149,6 +140,7 @@ private:
 
 	std::mutex ha_gyro_packet_ptr_access_;
 	HaGyroPacketPtr ha_gyro_packet_ptr_;
+    HaGyroPacketPtr old_ha_gyro_packet_ptr_;
 
 	std::mutex ha_accel_packet_ptr_access_;
 	HaAcceleroPacketPtr ha_accel_packet_ptr_;
@@ -161,7 +153,6 @@ private:
 
 	std::mutex ha_gps_packet_ptr_access_;
 	HaGpsPacketPtr ha_gps_packet_ptr_;
-
 
 	// ia part
 	ControlType controlType_;
@@ -181,24 +172,6 @@ private:
 	int8_t last_right_motor_;
 
 	uint64_t last_image_received_time_;
-
-
-	// Les logs
-	ofstream logODO;
-	ofstream logAccelo;
-	ofstream logGyro;
-	
-	
-	float robot_gx; 
-	float robot_gy;
-	float robot_gz; 
-	float robot_ax; 
-	float robot_ay; 
-	float robot_az; 
-	float robot_mx; 
-	float robot_my; 
-	float robot_mz;
-
 };
 
 #endif
