@@ -197,7 +197,8 @@ void Core::graphic_thread( ) {
         
         
         draw_lidar( lidar_distance_, 127 );
-        robot->lidar = Lidar_Tri_Get_Corrected(lidar_distance_, 200, 2000, 300, 2) ;
+        robot->lidar = lidarTreatments.Lidar_Tri_Get_Corrected(lidar_distance_, 200, 2000, 300, 2) ;
+        lidarTreatments.getRangeeFromLidar(robot->lidar);
         draw_lidar_corrected( robot->lidar, 255 );
         robot->scan();
         robot->drawBlockSecurity();
@@ -724,7 +725,7 @@ void Core::calculAngle(HaGyroPacketPtr newPacket, HaGyroPacketPtr oldPacket){
         float value = now-msReference;
         double deltaZ = newPacket->z - oldPacket->z;
         //double zRad = deltaZ*(value/1000);
-        double zRad = 0.5*(deltaZ*(value/1000));
+        double zRad = 0.5*((newPacket->z + oldPacket->z)*(value/1000));
         
         if (newPacket->z < this->etalonnage->getGyroZMin() && deltaZ < 0){ //tourne dans un sens
             this->angle = this->angle + zRad;

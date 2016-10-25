@@ -18,7 +18,11 @@
 ///SDL 2.0 LIB
 #include <SDL2/SDL_system.h>
 #include <SDL2/SDL.h>
+#ifdef __APPLE__
 #include <SDL2_ttf/SDL_ttf.h>
+#elif
+#include <SDL2/SDL_ttf.h>
+#endif
 
 ///APICODEC LIB
 #include "Naio01Codec.hpp"
@@ -148,6 +152,9 @@ private:
     std::mutex ha_accel_packet_ptr_access_;
     HaAcceleroPacketPtr ha_accel_packet_ptr_;
 private:
+    
+    LidarTreatments lidarTreatments;
+    
     std::mutex ha_odo_packet_ptr_access;
     HaOdoPacketPtr ha_odo_packet_ptr_;
     
