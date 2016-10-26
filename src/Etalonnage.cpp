@@ -67,8 +67,6 @@ void Etalonnage::etalonnageGyro(int gyroX, int gyroY, int gyroZ){
             this->gyroX += gyroX;
             this->gyroY += gyroY;
             this->gyroZ += gyroZ;
-            
-
             this->etalonnageGyroMinMax(gyroZ);
             
             

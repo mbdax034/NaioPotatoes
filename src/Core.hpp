@@ -114,9 +114,9 @@ private:
     void draw_leaning_angle();
     int64_t getTimeMsReference(){return msReference;};
     void calculAngle(HaGyroPacketPtr newPacket, HaGyroPacketPtr oldPacket);
-
-	int Thomas_draw_text_centered(char gyro_buff[100], int x_centered, int y_centered);
-	int Thomas_draw_text(char gyro_buff[100], int x, int y);
+    
+    int Thomas_draw_text_centered(char gyro_buff[100], int x_centered, int y_centered);
+    int Thomas_draw_text(char gyro_buff[100], int x, int y);
     void Thomas_draw_rect(int x, int y, int w, int h, int r = 255, int g = 255, int b = 255, int a = 255) ;
     int Thomas_check_clicked(int x, int y, int w, int h);
     int Thomas_check_wheel(int x, int y, int w, int h);
@@ -124,7 +124,9 @@ private:
     int Thomas_box(int x, int y, int &Var, int var_default) ;
     int Thomas_box(int x, int y, int &Var, int var_default, char* title) ;
     int Thomas_box(int x, int y, char* title) ;
-    void Thomas_draw_interface();
+    void draw_interface();
+    void move();
+    
 private:
     LidarTreatments* lidarTreatments;
     Leaning leaning;
@@ -169,6 +171,7 @@ private:
     
     std::mutex ha_accel_packet_ptr_access_;
     HaAcceleroPacketPtr ha_accel_packet_ptr_;
+    
 private:
     std::mutex ha_odo_packet_ptr_access;
     HaOdoPacketPtr ha_odo_packet_ptr_;
@@ -183,37 +186,37 @@ private:
     ControlType controlType_;
     
     Etalonnage* etalonnage;
-
-	SDL_Window* screen_;
-	SDL_Renderer* renderer_;
-
-	SDL_Color sdl_color_red_;
-	SDL_Color sdl_color_white_;
-	TTF_Font* ttf_font_;
-
-	uint64_t last_motor_time_;
-	std::mutex last_motor_access_;
-	int8_t last_left_motor_;
-	int8_t last_right_motor_;
-
-	uint64_t last_image_received_time_;
-
-	Robot * robot;
-	int mouseX;
-	int mouseY;
-
-
-
-
-	int mouseWheel;
-
-	int mouseState; //0 - normal, 1 - pressed, 2 - still pressed, -1 - released
-
-	TTF_Font* Var_ttf_font_;
-	int Var_min_radius ;
-	int Var_max_radius ;
-	int Var_packet_radius ;
-	int Var_packet_density ;
+    
+    SDL_Window* screen_;
+    SDL_Renderer* renderer_;
+    
+    SDL_Color sdl_color_red_;
+    SDL_Color sdl_color_white_;
+    TTF_Font* ttf_font_;
+    
+    uint64_t last_motor_time_;
+    std::mutex last_motor_access_;
+    int8_t last_left_motor_;
+    int8_t last_right_motor_;
+    
+    uint64_t last_image_received_time_;
+    
+    Robot * robot;
+    int mouseX;
+    int mouseY;
+    
+    
+    
+    
+    int mouseWheel;
+    
+    int mouseState; //0 - normal, 1 - pressed, 2 - still pressed, -1 - released
+    
+    TTF_Font* var_ttf_font_;
+    int var_min_radius ;
+    int var_max_radius ;
+    int var_packet_radius ;
+    int var_packet_density ;
 };
 
 #endif

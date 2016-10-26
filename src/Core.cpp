@@ -1,3 +1,4 @@
+
 #include "Core.hpp"
 #include <fstream>
 #include <sstream>
@@ -5,31 +6,30 @@
 #include <ctime>
 
 Core::Core( ) :
-		stopThreadAsked_{ false },
-		threadStarted_{ false },
-		graphicThread_{ },
-		hostAdress_{ "10.0.1.1" },
-		hostPort_{ 5555 },
-		socketConnected_{false},
-		naioCodec_{ },
-		sendPacketList_{ },
-		ha_lidar_packet_ptr_{ nullptr },
-		ha_odo_packet_ptr_{ nullptr },
-		api_post_packet_ptr_{nullptr },
-		ha_gps_packet_ptr_{ nullptr },
-		controlType_{ ControlType::CONTROL_TYPE_MANUAL },
-		last_motor_time_{ 0L },
-		last_left_motor_{ 0 },
-		last_right_motor_{ 0 },
-		mouseX{ 0},
-		mouseY{ 0},
-		mouseWheel{ 0},
-		mouseState{ 0},
-
-        Var_min_radius{DEFAULT_VAR_min_radius},
-        Var_max_radius{DEFAULT_VAR_max_radius},
-        Var_packet_radius{DEFAULT_VAR_packet_radius},
-        Var_packet_density{DEFAULT_VAR_packet_density}
+    stopThreadAsked_{ false },
+    threadStarted_{ false },
+    graphicThread_{ },
+    hostAdress_{ "10.0.1.1" },
+    hostPort_{ 5555 },
+    socketConnected_{false},
+    naioCodec_{ },
+    sendPacketList_{ },
+    ha_lidar_packet_ptr_{ nullptr },
+    ha_odo_packet_ptr_{ nullptr },
+    api_post_packet_ptr_{nullptr },
+    ha_gps_packet_ptr_{ nullptr },
+    controlType_{ ControlType::CONTROL_TYPE_MANUAL },
+    last_motor_time_{ 0L },
+    last_left_motor_{ 0 },
+    last_right_motor_{ 0 },
+    mouseX{ 0},
+    mouseY{ 0},
+    mouseWheel{ 0},
+    mouseState{ 0},
+    var_min_radius{DEFAULT_VAR_min_radius},
+    var_max_radius{DEFAULT_VAR_max_radius},
+    var_packet_radius{DEFAULT_VAR_packet_radius},
+    var_packet_density{DEFAULT_VAR_packet_density}
 {
 }
 
@@ -150,6 +150,7 @@ void Core::graphic_thread( ) {
     // create graphics
     screen_ = initSDL( "Api Client", SCREEN_WIDTH, SCREEN_HEIGHT );
     robot->context= renderer_;
+    
     // prepare timers for real time operations
     milliseconds ms = duration_cast< milliseconds >( system_clock::now().time_since_epoch() );
     
@@ -193,7 +194,7 @@ void Core::graphic_thread( ) {
         background.x = 0;
         
         SDL_RenderFillRect( renderer_, &background );
-
+        
         robot->drawBlockRect(robot->pointTest);
         
         draw_robot();
@@ -222,13 +223,14 @@ void Core::graphic_thread( ) {
         this->lidarTreatments = new LidarTreatments();
         robot->lidar = lidarTreatments->Lidar_Tri_Get_Corrected(lidar_distance_, 200, 2000, 300, 1) ;
         lidarTreatments->getRangeeFromLidar(robot->lidar);
-        draw_lidar_corrected( robot->lidar, 255 );
         robot->scan();
         robot->drawBlockSecurity();
         robot->drawBumpers();
         robot->pointTest.x=mouseX-2;
         robot->pointTest.y=mouseY-4;
-        Thomas_draw_interface();
+        robot->drawRobot();
+        draw_interface();
+        draw_lidar_corrected( robot->lidar, 255 );
         
         char gyro_buff[ 100 ];
         
@@ -451,10 +453,10 @@ void Core::draw_lidar_corrected( double **lidar_distance_, int color ) {
         SDL_RenderFillRect( renderer_, &lidar_pixel );
         if(lidar_distance_[i][0] != 0 && lidar_distance_[i][1] != 0){
             /*stringstream ptStringStream ;
-            ptStringStream << "x : " << to_string(lidar_distance_[i][0]);
-            ptStringStream << " y : " << to_string(lidar_distance_[i][1]);
-            char* pt = strdup(ptStringStream.str().c_str());
-            draw_text(pt, x, y);*/
+             ptStringStream << "x : " << to_string(lidar_distance_[i][0]);
+             ptStringStream << " y : " << to_string(lidar_distance_[i][1]);
+             char* pt = strdup(ptStringStream.str().c_str());
+             draw_text(pt, x, y);*/
         }
     }
 }
@@ -587,9 +589,13 @@ SDL_Window* Core::initSDL( const char* name, int szX, int szY ) {
     sdl_color_red_ = { 255, 0, 0, 0 };
     sdl_color_white_ = { 255, 255, 255, 0 };
     ttf_font_ = TTF_OpenFont("mono.ttf", 12);
+    var_ttf_font_ = TTF_OpenFont("mono.ttf", 15);
     
     if (ttf_font_ == nullptr)
         std::cerr << "Failed to load SDL Font! Error: " << TTF_GetError() << '\n';
+    
+    if (var_ttf_font_ == nullptr)
+        std::cerr << "Failed to load SDL Font (second)! Error: " << TTF_GetError() << '\n';
     
     std::cout << "DONE" << std::endl;
     
@@ -615,21 +621,21 @@ void Core::readSDLKeyboard(){
                 break;
             case SDL_QUIT:
                 stopThreadAsked_ = true;
-				break;
-		}
-
-		SDL_GetMouseState(&mouseX,&mouseY);
-
-		if( event.button.button == SDL_BUTTON_LEFT ) {
+                break;
+        }
+        
+        SDL_GetMouseState(&mouseX,&mouseY);
+        
+        if( event.button.button == SDL_BUTTON_LEFT ) {
             if( event.type == SDL_MOUSEBUTTONDOWN ) {
                 mouseState = 1 ;
             } else if( event.type == SDL_MOUSEBUTTONUP ) {
                 mouseState = -1 ;
             }
         }
-
-
-		if( event.type == SDL_MOUSEWHEEL ) {
+        
+        
+        if( event.type == SDL_MOUSEWHEEL ) {
             if( sdlKey_[ SDL_SCANCODE_LSHIFT ] == 1 ) {
                 mouseWheel = event.wheel.y*100 ;
             } else if( sdlKey_[ SDL_SCANCODE_LCTRL ] == 1 ) {
@@ -637,8 +643,8 @@ void Core::readSDLKeyboard(){
             } else {
                 mouseWheel = event.wheel.y ;
             }
-		}
-	}
+        }
+    }
 }
 
 bool Core::manageSDLKeyboard() {
@@ -760,6 +766,8 @@ void Core::server_write_thread( ) {
     
     while( not stopServerWriteThreadAsked_ ) {
         
+        move();
+        
         last_motor_access_.lock();
         
         HaMotorsPacketPtr haMotorsPacketPtr = std::make_shared<HaMotorsPacket>( last_left_motor_, last_right_motor_ );
@@ -845,7 +853,7 @@ int Core::Thomas_check_clicked(int x, int y, int w, int h) {
 }
 
 int Core::Thomas_draw_text_centered(char buffer[100], int x_centered, int y_centered) {
-    SDL_Surface* surfaceMessageAccel = TTF_RenderText_Solid( Var_ttf_font_, buffer, { 0, 0, 0, 0 } );
+    SDL_Surface* surfaceMessageAccel = TTF_RenderText_Solid( var_ttf_font_, buffer, { 0, 0, 0, 0 } );
     SDL_Texture* messageAccel = SDL_CreateTextureFromSurface( renderer_, surfaceMessageAccel );
     
     SDL_FreeSurface( surfaceMessageAccel );
@@ -863,7 +871,7 @@ int Core::Thomas_draw_text_centered(char buffer[100], int x_centered, int y_cent
 }
 
 int Core::Thomas_draw_text(char buffer[100], int x, int y) {
-    SDL_Surface* surfaceMessageAccel = TTF_RenderText_Solid( Var_ttf_font_, buffer, { 0, 0, 0, 0 } );
+    SDL_Surface* surfaceMessageAccel = TTF_RenderText_Solid( var_ttf_font_, buffer, { 0, 0, 0, 0 } );
     SDL_Texture* messageAccel = SDL_CreateTextureFromSurface( renderer_, surfaceMessageAccel );
     
     SDL_FreeSurface( surfaceMessageAccel );
@@ -947,20 +955,30 @@ int Core::Thomas_box(int x, int y, char* title) {
     return is_valid ;
 }
 
-void Core::Thomas_draw_interface(){
-    Thomas_box(10, 10, Var_min_radius, DEFAULT_VAR_min_radius, "Petit Cercle") ;
-    Thomas_box(10, 70, Var_max_radius, DEFAULT_VAR_max_radius, "Grand cercle") ;
+void Core::draw_interface(){
+    Thomas_box(10, 10, var_min_radius, DEFAULT_VAR_min_radius, "Petit Cercle") ;
+    Thomas_box(10, 70, var_max_radius, DEFAULT_VAR_max_radius, "Grand cercle") ;
     if( Thomas_box(10, 130, "reset") ) {
-        Var_min_radius = DEFAULT_VAR_min_radius ;
-        Var_max_radius = DEFAULT_VAR_max_radius ;
-        Var_packet_radius = DEFAULT_VAR_packet_radius ;
-        Var_packet_density = DEFAULT_VAR_packet_density ;
+        var_min_radius = DEFAULT_VAR_min_radius ;
+        var_max_radius = DEFAULT_VAR_max_radius ;
+        var_packet_radius = DEFAULT_VAR_packet_radius ;
+        var_packet_density = DEFAULT_VAR_packet_density ;
     }
     if( Thomas_box(10, SCREEN_HEIGHT-18-20, "START") ) {
-        Var_min_radius = DEFAULT_VAR_min_radius ;
-        Var_max_radius = DEFAULT_VAR_max_radius ;
-        Var_packet_radius = DEFAULT_VAR_packet_radius ;
-        Var_packet_density = DEFAULT_VAR_packet_density ;
+        var_min_radius = DEFAULT_VAR_min_radius ;
+        var_max_radius = DEFAULT_VAR_max_radius ;
+        var_packet_radius = DEFAULT_VAR_packet_radius ;
+        var_packet_density = DEFAULT_VAR_packet_density ;
+    }
+}
+
+void Core::move(){
+    
+    if(robot->moveForaward()){
+        last_motor_access_.lock();
+        last_left_motor_ = static_cast<int8_t >( robot->speedLeft * 2 );
+        last_right_motor_ = static_cast<int8_t >( robot->speedRight * 2 );
+        last_motor_access_.unlock();
     }
 }
 
