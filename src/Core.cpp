@@ -5,25 +5,33 @@
 #include <ctime>
 
 Core::Core( ) :
-    stopThreadAsked_{ false },
-    threadStarted_{ false },
-    graphicThread_{ },
-    hostAdress_{ "10.0.1.1" },
-    hostPort_{ 5555 },
-    socketConnected_{false},
-    naioCodec_{ },
-    sendPacketList_{ },
-    ha_lidar_packet_ptr_{ nullptr },
-    ha_odo_packet_ptr_{ nullptr },
-    api_post_packet_ptr_{nullptr },
-    ha_gps_packet_ptr_{ nullptr },
-    controlType_{ ControlType::CONTROL_TYPE_MANUAL },
-    last_motor_time_{ 0L },
-    last_left_motor_{ 0 },
-    last_right_motor_{ 0 },
-    mouseX{ 0},
-    mouseY{ 0}
-{}
+		stopThreadAsked_{ false },
+		threadStarted_{ false },
+		graphicThread_{ },
+		hostAdress_{ "10.0.1.1" },
+		hostPort_{ 5555 },
+		socketConnected_{false},
+		naioCodec_{ },
+		sendPacketList_{ },
+		ha_lidar_packet_ptr_{ nullptr },
+		ha_odo_packet_ptr_{ nullptr },
+		api_post_packet_ptr_{nullptr },
+		ha_gps_packet_ptr_{ nullptr },
+		controlType_{ ControlType::CONTROL_TYPE_MANUAL },
+		last_motor_time_{ 0L },
+		last_left_motor_{ 0 },
+		last_right_motor_{ 0 },
+		mouseX{ 0},
+		mouseY{ 0},
+		mouseWheel{ 0},
+		mouseState{ 0},
+
+        Var_min_radius{DEFAULT_VAR_min_radius},
+        Var_max_radius{DEFAULT_VAR_max_radius},
+        Var_packet_radius{DEFAULT_VAR_packet_radius},
+        Var_packet_density{DEFAULT_VAR_packet_density}
+{
+}
 
 Core::~Core( ) {
     
@@ -39,6 +47,7 @@ void Core::init( std::string hostAdress, uint16_t hostPort ) {
     
     stopThreadAsked_ = false;
     threadStarted_ = false;
+    
     socketConnected_ = false;
     
     serverReadthreadStarted_ = false;
@@ -150,13 +159,30 @@ void Core::graphic_thread( ) {
     
     threadStarted_ = true;
     
+    int oldFrontLeftVal = 0;
+    int oldRearLeftVal = 0;
+    int oldFrontRightVal = 0;
+    int oldRearRightVal = 0;
+    if(ha_odo_packet_ptr_ != nullptr){
+        oldFrontLeftVal = ha_odo_packet_ptr_->fl;
+        oldRearLeftVal = ha_odo_packet_ptr_->rl;
+        oldFrontRightVal = ha_odo_packet_ptr_->fr;
+        oldRearRightVal = ha_odo_packet_ptr_->rr;
+    }
+    
+    int newFrontLeftVal = 2;
+    int newRearLeftVal = 2;
+    int newFrontRightVal = 2;
+    int newRearRightVal = 2;
+    
+    int tickFrontLeftWheel = 0;
+    int tickRearLeftWheel = 0;
+    int tickFrontRightWheel = 0;
+    int tickRearRightWheel = 0;
+    
     while( !stopThreadAsked_ ) {
         ms = duration_cast< milliseconds >( system_clock::now().time_since_epoch() );
         now = static_cast<int64_t>( ms.count() );
-        
-        readSDLKeyboard();
-        manageSDLKeyboard();
-        
         
         // drawing part.
         SDL_SetRenderDrawColor( renderer_, 0, 0, 0, 255 ); // the rect color (solid red)
@@ -167,11 +193,7 @@ void Core::graphic_thread( ) {
         background.x = 0;
         
         SDL_RenderFillRect( renderer_, &background );
-        
-        
-        
-        
-        
+
         robot->drawBlockRect(robot->pointTest);
         
         draw_robot();
@@ -197,15 +219,16 @@ void Core::graphic_thread( ) {
         
         
         draw_lidar( lidar_distance_, 127 );
-        robot->lidar = lidarTreatments.Lidar_Tri_Get_Corrected(lidar_distance_, 200, 2000, 300, 2) ;
-        lidarTreatments.getRangeeFromLidar(robot->lidar);
+        this->lidarTreatments = new LidarTreatments();
+        robot->lidar = lidarTreatments->Lidar_Tri_Get_Corrected(lidar_distance_, 200, 2000, 300, 1) ;
+        lidarTreatments->getRangeeFromLidar(robot->lidar);
         draw_lidar_corrected( robot->lidar, 255 );
         robot->scan();
         robot->drawBlockSecurity();
         robot->drawBumpers();
         robot->pointTest.x=mouseX-2;
         robot->pointTest.y=mouseY-4;
-        
+        Thomas_draw_interface();
         
         char gyro_buff[ 100 ];
         
@@ -246,6 +269,38 @@ void Core::graphic_thread( ) {
             snprintf( odo_buff, sizeof( odo_buff ), "ODO -> RF : N/A ; RR : N/A ; RL : N/A, FL : N/A" );
         }
         
+        if(ha_odo_packet_ptr != nullptr){
+            newFrontLeftVal = ha_odo_packet_ptr->fl;
+            newRearLeftVal = ha_odo_packet_ptr->rl;
+            newFrontRightVal = ha_odo_packet_ptr->fr;
+            newRearRightVal = ha_odo_packet_ptr->rr;
+        }
+        
+        if (newFrontLeftVal != oldFrontLeftVal){
+            tickFrontLeftWheel += 1;
+            oldFrontLeftVal = newFrontLeftVal;
+        }
+        
+        if (newRearLeftVal != oldRearLeftVal){
+            tickRearLeftWheel += 1;
+            oldRearLeftVal = newRearLeftVal;
+        }
+        
+        if (newFrontRightVal != oldFrontRightVal){
+            tickFrontRightWheel += 1;
+            oldFrontRightVal = newFrontRightVal;
+        }
+        
+        if (newRearRightVal != oldRearRightVal){
+            tickRearRightWheel += 1;
+            oldRearRightVal = newRearRightVal;
+        }
+        
+        std::cout << "FL : " << tickFrontLeftWheel <<std::endl;
+        std::cout << "RL : " << tickRearLeftWheel <<std::endl;
+        std::cout << "FR : " << tickFrontRightWheel <<std::endl;
+        std::cout << "RR : " << tickRearRightWheel <<std::endl;
+        
         ha_gps_packet_ptr_access_.lock();
         HaGpsPacketPtr ha_gps_packet_ptr = ha_gps_packet_ptr_;
         ha_gps_packet_ptr_access_.unlock();
@@ -273,7 +328,7 @@ void Core::graphic_thread( ) {
         api_post_packet_ptr_access_.unlock();
         
         if( api_post_packet_ptr != nullptr ) {
-            std::cout << api_post_packet_ptr->postList.size() <<std::endl;
+            //std::cout << api_post_packet_ptr->postList.size() <<std::endl;
             for( uint i = 0 ; i < api_post_packet_ptr->postList.size() ; i++ ) {
                 if( api_post_packet_ptr->postList[ i ].postType == ApiPostPacket::PostType::RED ) {
                     draw_red_post( static_cast<int>( api_post_packet_ptr->postList[ i ].x * 100.0 ), static_cast<int>( api_post_packet_ptr->postList[ i ].y * 100.0 ) );
@@ -314,16 +369,10 @@ void Core::graphic_thread( ) {
         
         //std::cout << "display time took " << display_time << " ms so wait_time is " << wait_time << " ms " << std::endl;
         
-        // repeat keyboard reading for smoother command inputs
-        readSDLKeyboard();
-        manageSDLKeyboard();
-        
-        std::this_thread::sleep_for( std::chrono::milliseconds( wait_time / 2 ) );
+        std::this_thread::sleep_for( std::chrono::milliseconds( wait_time ) );
         
         readSDLKeyboard();
         manageSDLKeyboard();
-        
-        std::this_thread::sleep_for( std::chrono::milliseconds( wait_time / 2 ) );
     }
     
     threadStarted_ = false;
@@ -400,6 +449,13 @@ void Core::draw_lidar_corrected( double **lidar_distance_, int color ) {
         lidar_pixel.y = static_cast<int>( y );
         
         SDL_RenderFillRect( renderer_, &lidar_pixel );
+        if(lidar_distance_[i][0] != 0 && lidar_distance_[i][1] != 0){
+            /*stringstream ptStringStream ;
+            ptStringStream << "x : " << to_string(lidar_distance_[i][0]);
+            ptStringStream << " y : " << to_string(lidar_distance_[i][1]);
+            char* pt = strdup(ptStringStream.str().c_str());
+            draw_text(pt, x, y);*/
+        }
     }
 }
 
@@ -559,11 +615,30 @@ void Core::readSDLKeyboard(){
                 break;
             case SDL_QUIT:
                 stopThreadAsked_ = true;
-                break;
+				break;
+		}
+
+		SDL_GetMouseState(&mouseX,&mouseY);
+
+		if( event.button.button == SDL_BUTTON_LEFT ) {
+            if( event.type == SDL_MOUSEBUTTONDOWN ) {
+                mouseState = 1 ;
+            } else if( event.type == SDL_MOUSEBUTTONUP ) {
+                mouseState = -1 ;
+            }
         }
-        
-        SDL_GetMouseState(&mouseX,&mouseY);
-    }
+
+
+		if( event.type == SDL_MOUSEWHEEL ) {
+            if( sdlKey_[ SDL_SCANCODE_LSHIFT ] == 1 ) {
+                mouseWheel = event.wheel.y*100 ;
+            } else if( sdlKey_[ SDL_SCANCODE_LCTRL ] == 1 ) {
+                mouseWheel = event.wheel.y*10 ;
+            } else {
+                mouseWheel = event.wheel.y ;
+            }
+		}
+	}
 }
 
 bool Core::manageSDLKeyboard() {
@@ -658,7 +733,6 @@ void Core::manageReceivedPacket( BaseNaio01PacketPtr packetPtr ) {
         api_post_packet_ptr_access_.unlock();
     } else if ( std::dynamic_pointer_cast<HaGpsPacket>( packetPtr )  ) {
         HaGpsPacketPtr haGpsPacketPtr = std::dynamic_pointer_cast<HaGpsPacket>( packetPtr );
-        
         ha_gps_packet_ptr_access_.lock();
         ha_gps_packet_ptr_ = haGpsPacketPtr;
         ha_gps_packet_ptr_access_.unlock();
@@ -724,8 +798,8 @@ void Core::calculAngle(HaGyroPacketPtr newPacket, HaGyroPacketPtr oldPacket){
     } else {
         float value = now-msReference;
         double deltaZ = newPacket->z - oldPacket->z;
-        //double zRad = deltaZ*(value/1000);
-        double zRad = 0.5*((newPacket->z + oldPacket->z)*(value/1000));
+        double zRad = deltaZ*(value/1000);
+        //double zRad = ((0.5*(newPacket->z + oldPacket->z))*(value/1000));
         
         if (newPacket->z < this->etalonnage->getGyroZMin() && deltaZ < 0){ //tourne dans un sens
             this->angle = this->angle + zRad;
@@ -736,3 +810,157 @@ void Core::calculAngle(HaGyroPacketPtr newPacket, HaGyroPacketPtr oldPacket){
     }
     msReference = now;
 }
+
+
+
+
+void Core::Thomas_draw_rect(int x, int y, int w, int h, int r, int g, int b, int a) {
+    SDL_SetRenderDrawColor(renderer_, r, g, b, a); // the rect color (solid red)
+    SDL_Rect rectangle;
+    rectangle.x = x;
+    rectangle.y = y;
+    rectangle.w = w;
+    rectangle.h = h;
+    SDL_RenderFillRect(renderer_, &rectangle);
+}
+
+int Core::Thomas_check_wheel(int x, int y, int w, int h) {
+    if( mouseX >= x && mouseX <= x+w )
+        if( mouseY >= y && mouseY <= y+h )
+            return mouseWheel ;
+    return 0 ;
+}
+
+int Core::Thomas_check_clicked(int x, int y, int w, int h) {
+    if( mouseX >= x && mouseX <= x+w ) {
+        if( mouseY >= y && mouseY <= y+h ) {
+            if( mouseState ) {
+                return mouseState ;
+            }
+            
+            return -10 ;
+        }
+    }
+    return 0 ;
+}
+
+int Core::Thomas_draw_text_centered(char buffer[100], int x_centered, int y_centered) {
+    SDL_Surface* surfaceMessageAccel = TTF_RenderText_Solid( Var_ttf_font_, buffer, { 0, 0, 0, 0 } );
+    SDL_Texture* messageAccel = SDL_CreateTextureFromSurface( renderer_, surfaceMessageAccel );
+    
+    SDL_FreeSurface( surfaceMessageAccel );
+    
+    SDL_Rect message_rect_accel;
+    SDL_QueryTexture( messageAccel, NULL, NULL, &message_rect_accel.w, &message_rect_accel.h );
+    message_rect_accel.x = x_centered - message_rect_accel.w/2 ;
+    message_rect_accel.y = y_centered - message_rect_accel.h/2 ;
+    
+    SDL_RenderCopy( renderer_, messageAccel, NULL, &message_rect_accel );
+    
+    SDL_DestroyTexture( messageAccel );
+    
+    return message_rect_accel.w ;
+}
+
+int Core::Thomas_draw_text(char buffer[100], int x, int y) {
+    SDL_Surface* surfaceMessageAccel = TTF_RenderText_Solid( Var_ttf_font_, buffer, { 0, 0, 0, 0 } );
+    SDL_Texture* messageAccel = SDL_CreateTextureFromSurface( renderer_, surfaceMessageAccel );
+    
+    SDL_FreeSurface( surfaceMessageAccel );
+    
+    SDL_Rect message_rect_accel;
+    SDL_QueryTexture( messageAccel, NULL, NULL, &message_rect_accel.w, &message_rect_accel.h );
+    message_rect_accel.x = x ;
+    message_rect_accel.y = y ;
+    
+    SDL_RenderCopy( renderer_, messageAccel, NULL, &message_rect_accel );
+    
+    SDL_DestroyTexture( messageAccel );
+    
+    return message_rect_accel.w ;
+}
+
+int Core::Thomas_button(int x, int y, int w, int h, int r, int g, int b) {
+    double alpha = Thomas_check_clicked(x, y, w, h) ;
+    if( alpha == -10 )
+        alpha = 0.75 ;
+    else if( alpha > 0 )
+        alpha = 1 ;
+    else
+        alpha = 0.5 ;
+    
+    Thomas_draw_rect(x, y, w, h, r*alpha, g*alpha, b*alpha) ;
+    
+    if( alpha == 1 ) return 1 ;
+    return 0 ;
+}
+
+int Core::Thomas_box(int x, int y, int &Var, int var_default) {
+    int is_valid = 0 ;
+    char text_buff[100];
+    
+    Var += Thomas_check_wheel(x, y, 36+10, 18+10) ;
+    if( Thomas_button(x, y, 36+10, 18+10) ) {
+        Var = var_default ;
+        is_valid = 1 ;
+    }
+    
+    snprintf( text_buff, sizeof( text_buff ), "%d", Var);
+    Thomas_draw_text_centered(text_buff, x+(36+10)/2, y+(18+10)/2);
+    
+    return is_valid ;
+}
+
+int Core::Thomas_box(int x, int y, int &Var, int var_default, char* title) {
+    int is_valid = 0 ;
+    int title_width = Thomas_draw_text(title, x+5, y+5);
+    if( title_width < 36 ) title_width = 36 ;
+    
+    Var += Thomas_check_wheel(x, y, title_width+10, 18*2+10) ;
+    if( Thomas_button(x, y, title_width+10, 18*2+10) ) {
+        Var = var_default ;
+        is_valid = 1 ;
+    }
+    
+    Thomas_draw_rect(x+2, y+18+8, title_width+6, 18, 255, 255, 255) ;
+    
+    Thomas_draw_text(title, x+5, y+5);
+    
+    char text_buff[100];
+    snprintf( text_buff, sizeof( text_buff ), "%d", Var);
+    Thomas_draw_text_centered(text_buff, x+(title_width+10)/2, y+18+8+(18)/2);
+    
+    return is_valid ;
+}
+
+int Core::Thomas_box(int x, int y, char* title) {
+    int is_valid = 0 ;
+    int title_width = Thomas_draw_text(title, x+5, y+5);
+    if( title_width < 36 ) title_width = 36 ;
+    
+    if( Thomas_button(x, y, title_width+10, 18+10) ) {
+        is_valid = 1 ;
+    }
+    
+    Thomas_draw_text(title, x+5, y+5);
+    
+    return is_valid ;
+}
+
+void Core::Thomas_draw_interface(){
+    Thomas_box(10, 10, Var_min_radius, DEFAULT_VAR_min_radius, "Petit Cercle") ;
+    Thomas_box(10, 70, Var_max_radius, DEFAULT_VAR_max_radius, "Grand cercle") ;
+    if( Thomas_box(10, 130, "reset") ) {
+        Var_min_radius = DEFAULT_VAR_min_radius ;
+        Var_max_radius = DEFAULT_VAR_max_radius ;
+        Var_packet_radius = DEFAULT_VAR_packet_radius ;
+        Var_packet_density = DEFAULT_VAR_packet_density ;
+    }
+    if( Thomas_box(10, SCREEN_HEIGHT-18-20, "START") ) {
+        Var_min_radius = DEFAULT_VAR_min_radius ;
+        Var_max_radius = DEFAULT_VAR_max_radius ;
+        Var_packet_radius = DEFAULT_VAR_packet_radius ;
+        Var_packet_density = DEFAULT_VAR_packet_density ;
+    }
+}
+

@@ -18,9 +18,10 @@
 ///SDL 2.0 LIB
 #include <SDL2/SDL_system.h>
 #include <SDL2/SDL.h>
+
 #ifdef __APPLE__
 #include <SDL2_ttf/SDL_ttf.h>
-#elif
+#else
 #include <SDL2/SDL_ttf.h>
 #endif
 
@@ -44,13 +45,19 @@
 #include "Etalonnage.hpp"
 #include "robot.hpp"
 
+
 #define PORT_ROBOT_MOTOR 5555
 #define DEFAULT_HOST_ADDRESS "10.0.1.1"
 
 #define CONNECT_TO_ROBOT    1
 #define DRAW_IMU_AXIS       0
-#define SCREEN_WIDTH        1000
+#define SCREEN_WIDTH        800
 #define SCREEN_HEIGHT       600
+
+#define DEFAULT_VAR_min_radius      200
+#define DEFAULT_VAR_max_radius      2000
+#define DEFAULT_VAR_packet_radius   300
+#define DEFAULT_VAR_packet_density  2
 
 using namespace std;
 using namespace std::chrono;
@@ -107,8 +114,19 @@ private:
     void draw_leaning_angle();
     int64_t getTimeMsReference(){return msReference;};
     void calculAngle(HaGyroPacketPtr newPacket, HaGyroPacketPtr oldPacket);
+
+	int Thomas_draw_text_centered(char gyro_buff[100], int x_centered, int y_centered);
+	int Thomas_draw_text(char gyro_buff[100], int x, int y);
+    void Thomas_draw_rect(int x, int y, int w, int h, int r = 255, int g = 255, int b = 255, int a = 255) ;
+    int Thomas_check_clicked(int x, int y, int w, int h);
+    int Thomas_check_wheel(int x, int y, int w, int h);
+    int Thomas_button(int x, int y, int w, int h, int r = 255, int g = 255, int b = 255) ;
+    int Thomas_box(int x, int y, int &Var, int var_default) ;
+    int Thomas_box(int x, int y, int &Var, int var_default, char* title) ;
+    int Thomas_box(int x, int y, char* title) ;
+    void Thomas_draw_interface();
 private:
-    
+    LidarTreatments* lidarTreatments;
     Leaning leaning;
     int64_t msReference = 0;
     double angle = 0;
@@ -152,9 +170,6 @@ private:
     std::mutex ha_accel_packet_ptr_access_;
     HaAcceleroPacketPtr ha_accel_packet_ptr_;
 private:
-    
-    LidarTreatments lidarTreatments;
-    
     std::mutex ha_odo_packet_ptr_access;
     HaOdoPacketPtr ha_odo_packet_ptr_;
     
@@ -168,24 +183,37 @@ private:
     ControlType controlType_;
     
     Etalonnage* etalonnage;
-    
-    SDL_Window* screen_;
-    SDL_Renderer* renderer_;
-    
-    SDL_Color sdl_color_red_;
-    SDL_Color sdl_color_white_;
-    TTF_Font* ttf_font_;
-    
-    uint64_t last_motor_time_;
-    std::mutex last_motor_access_;
-    int8_t last_left_motor_;
-    int8_t last_right_motor_;
-    
-    uint64_t last_image_received_time_;
-    
-    Robot * robot;
-    int mouseX;
-    int mouseY;
+
+	SDL_Window* screen_;
+	SDL_Renderer* renderer_;
+
+	SDL_Color sdl_color_red_;
+	SDL_Color sdl_color_white_;
+	TTF_Font* ttf_font_;
+
+	uint64_t last_motor_time_;
+	std::mutex last_motor_access_;
+	int8_t last_left_motor_;
+	int8_t last_right_motor_;
+
+	uint64_t last_image_received_time_;
+
+	Robot * robot;
+	int mouseX;
+	int mouseY;
+
+
+
+
+	int mouseWheel;
+
+	int mouseState; //0 - normal, 1 - pressed, 2 - still pressed, -1 - released
+
+	TTF_Font* Var_ttf_font_;
+	int Var_min_radius ;
+	int Var_max_radius ;
+	int Var_packet_radius ;
+	int Var_packet_density ;
 };
 
 #endif
