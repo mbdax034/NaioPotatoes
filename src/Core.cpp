@@ -6,30 +6,33 @@
 #include <ctime>
 
 Core::Core( ) :
-    stopThreadAsked_{ false },
-    threadStarted_{ false },
-    graphicThread_{ },
-    hostAdress_{ "10.0.1.1" },
-    hostPort_{ 5555 },
-    socketConnected_{false},
-    naioCodec_{ },
-    sendPacketList_{ },
-    ha_lidar_packet_ptr_{ nullptr },
-    ha_odo_packet_ptr_{ nullptr },
-    api_post_packet_ptr_{nullptr },
-    ha_gps_packet_ptr_{ nullptr },
-    controlType_{ ControlType::CONTROL_TYPE_MANUAL },
-    last_motor_time_{ 0L },
-    last_left_motor_{ 0 },
-    last_right_motor_{ 0 },
-    mouseX{ 0},
-    mouseY{ 0},
-    mouseWheel{ 0},
-    mouseState{ 0},
-    var_min_radius{DEFAULT_VAR_min_radius},
-    var_max_radius{DEFAULT_VAR_max_radius},
-    var_packet_radius{DEFAULT_VAR_packet_radius},
-    var_packet_density{DEFAULT_VAR_packet_density}
+stopThreadAsked_{ false },
+threadStarted_{ false },
+graphicThread_{ },
+hostAdress_{ "10.0.1.1" },
+hostPort_{ 5555 },
+socketConnected_{false},
+naioCodec_{ },
+sendPacketList_{ },
+ha_lidar_packet_ptr_{ nullptr },
+ha_odo_packet_ptr_{ nullptr },
+api_post_packet_ptr_{nullptr },
+ha_gps_packet_ptr_{ nullptr },
+controlType_{ ControlType::CONTROL_TYPE_MANUAL },
+last_motor_time_{ 0L },
+last_left_motor_{ 0 },
+last_right_motor_{ 0 },
+mouseX{ 0},
+mouseY{ 0},
+mouseWheel{ 0},
+mouseState{ 0},
+var_min_radius{DEFAULT_VAR_min_radius},
+var_max_radius{DEFAULT_VAR_max_radius},
+var_packet_radius{DEFAULT_VAR_packet_radius},
+var_packet_density{DEFAULT_VAR_packet_density},
+var_maxPointBumper{DEFAULT_VAR_maxPointBumper},
+var_maxPointSecu{DEFAULT_VAR_maxPointSecu},
+var_moveAuto{DEFAULT_VAR_moveAuto}
 {
 }
 
@@ -222,8 +225,15 @@ void Core::graphic_thread( ) {
         draw_lidar( lidar_distance_, 127 );
         this->lidarTreatments = new LidarTreatments();
         robot->lidar = lidarTreatments->Lidar_Tri_Get_Corrected(lidar_distance_, 200, 2000, 300, 1) ;
+        vector<vector<double>> rangees = lidarTreatments->getRangeeFromLidar(robot->lidar);
+        
+        for(vector<double> xArray : rangees){
+            SDL_SetRenderDrawColor(renderer_, 0, 255, 0, 255);
+            SDL_RenderDrawLine(renderer_, getXfromLidarToSDL(xArray.at(0)), robot->robot.y, getXfromLidarToSDL(xArray.at(xArray.size()-1)), robot->robot.y-(robot->robot.y*COEFF_SDL_RANGEE_LINE));
+        }
+        
         lidarTreatments->getRangeeFromLidar(robot->lidar);
-        robot->scan();
+        robot->scan(var_maxPointBumper,var_maxPointSecu);
         robot->drawBlockSecurity();
         robot->drawBumpers();
         robot->pointTest.x=mouseX-2;
@@ -437,6 +447,14 @@ void Core::draw_lidar( uint16_t lidar_distance_[ 271 ], int color ) {
     }
 }
 
+double Core::getXfromLidarToSDL(double x){
+    return static_cast<int>( SCREEN_WIDTH/2 + x/10 );
+}
+
+double Core::getYfromLidarToSDL(double y){
+    return static_cast<int> (SCREEN_HEIGHT/2 - y/10 );
+}
+
 void Core::draw_lidar_corrected( double **lidar_distance_, int color ) {
     for( int i = 0; i < 180 ; i++ ) {
         double x = SCREEN_WIDTH/2 + lidar_distance_[i][0]/10;
@@ -451,13 +469,6 @@ void Core::draw_lidar_corrected( double **lidar_distance_, int color ) {
         lidar_pixel.y = static_cast<int>( y );
         
         SDL_RenderFillRect( renderer_, &lidar_pixel );
-        if(lidar_distance_[i][0] != 0 && lidar_distance_[i][1] != 0){
-            /*stringstream ptStringStream ;
-             ptStringStream << "x : " << to_string(lidar_distance_[i][0]);
-             ptStringStream << " y : " << to_string(lidar_distance_[i][1]);
-             char* pt = strdup(ptStringStream.str().c_str());
-             draw_text(pt, x, y);*/
-        }
     }
 }
 
@@ -608,6 +619,13 @@ void Core::exitSDL() {
 
 void Core::readSDLKeyboard(){
     SDL_Event event;
+    
+    if( mouseState == -1 ) {
+        mouseState = 0 ;
+    } else if( mouseState == 1 ) {
+        mouseState = 2 ;
+    }
+    mouseWheel = 0 ;
     
     while ( SDL_PollEvent(&event) ) {
         switch( event.type ) {
@@ -766,7 +784,8 @@ void Core::server_write_thread( ) {
     
     while( not stopServerWriteThreadAsked_ ) {
         
-        move();
+        if(var_moveAuto)
+            move();
         
         last_motor_access_.lock();
         
@@ -956,19 +975,29 @@ int Core::Thomas_box(int x, int y, char* title) {
 }
 
 void Core::draw_interface(){
-    Thomas_box(10, 10, var_min_radius, DEFAULT_VAR_min_radius, "Petit Cercle") ;
-    Thomas_box(10, 70, var_max_radius, DEFAULT_VAR_max_radius, "Grand cercle") ;
-    if( Thomas_box(10, 130, "reset") ) {
+    Thomas_box(10, 10+60*0, var_min_radius, DEFAULT_VAR_min_radius, "Petit Cercle") ;
+    Thomas_box(10, 10+60*1, var_max_radius, DEFAULT_VAR_max_radius, "Grand Cercle") ;
+    Thomas_box(130, 10+60*0, var_packet_radius, DEFAULT_VAR_packet_radius, "Radius") ;
+    Thomas_box(130, 10+60*1, var_packet_density, DEFAULT_VAR_packet_density, "Densite") ;
+    Thomas_box(10, 10+60*2, var_maxPointBumper, DEFAULT_VAR_maxPointBumper, "Point Bumper") ;
+    Thomas_box(10, 10+60*3, var_maxPointSecu, DEFAULT_VAR_maxPointSecu, "Point Secu") ;
+    
+    if( Thomas_box(10, SCREEN_HEIGHT-38-60*1, "reset") ) {
         var_min_radius = DEFAULT_VAR_min_radius ;
         var_max_radius = DEFAULT_VAR_max_radius ;
         var_packet_radius = DEFAULT_VAR_packet_radius ;
         var_packet_density = DEFAULT_VAR_packet_density ;
+        var_maxPointBumper = DEFAULT_VAR_maxPointBumper ;
+        var_maxPointSecu = DEFAULT_VAR_maxPointSecu ;
     }
-    if( Thomas_box(10, SCREEN_HEIGHT-18-20, "START") ) {
-        var_min_radius = DEFAULT_VAR_min_radius ;
-        var_max_radius = DEFAULT_VAR_max_radius ;
-        var_packet_radius = DEFAULT_VAR_packet_radius ;
-        var_packet_density = DEFAULT_VAR_packet_density ;
+    if( !var_moveAuto ) {
+        if( Thomas_box(10, SCREEN_HEIGHT-38-60*0, "START") && mouseState == 1 ) {
+            var_moveAuto = 1 ;
+        }
+    } else {
+        if( Thomas_box(10, SCREEN_HEIGHT-38-60*0, "STOP") && mouseState == 1 ) {
+            var_moveAuto = 0 ;
+        }
     }
 }
 

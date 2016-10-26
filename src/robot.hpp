@@ -34,6 +34,7 @@ typedef struct {
     int y=0;
     bool hasCollision;
     RGB rgb;
+    int nbPoints=0;
 }Block;
 typedef struct {
     int x=0;
@@ -54,7 +55,7 @@ class Robot {
     void drawBlockSecurity();
     void drawRobot();
     void drawBumpers();
-    void scan();
+    void scan(int maxPointBumper,int maxPointSecu);
     
     public :
     Point robot;
@@ -71,8 +72,6 @@ class Robot {
     double ** lidar;
     int SCREEN_WIDTH;
     int SCREEN_HEIGHT;
-    
-    
 };
 
 
