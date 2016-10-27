@@ -1,11 +1,4 @@
 #include "LidarTreatments.hpp"
-#include <iostream>
-#include <cmath>
-#include <vector>
-#define MARGE_ERREUR 150
-
-using namespace std; 
-
 
 double** LidarTreatments::Lidar_Tri_Get_Corrected(uint16_t _lidar[ 271 ], int _min_radius, int _max_radius, int _packet_radius, int _packet_density) {
     double **lidar_ori = new double*[180] ; //X & Y original coordinate for all Lidar's ray
@@ -43,6 +36,7 @@ double** LidarTreatments::Lidar_Tri_Get_Corrected(uint16_t _lidar[ 271 ], int _m
         }
 
         if( density >= _packet_density ) {
+            //cout << density << ">" << _packet_density << endl ;
             lidar_final[i][0] = lidar_ori[i][0] ;
             lidar_final[i][1] = lidar_ori[i][1] ;
         }
@@ -64,57 +58,145 @@ bool less_vectors(const std::vector<double> &a,const std::vector<double> &b) {
 vector<vector<double>> LidarTreatments::getRangeeFromLidar(double** pts){
     vector<vector<double>> xList;
     
-    for(int i = 0; i < 180 ; i++){
-        
-        //Si les coordonnées du points sont différents de 0
-        if((pts[i][0] != 0 && pts[i][1] != 0)){
+    //for(int angle = -20 ; angle <= 20 ; angle+= 5) {
+        for(int i = 0; i < 180 ; i++){
             
-            //Première valeur ajoutée
-            if(xList.size() == 0) {
-                vector<double> xs = *new vector<double>();
-                xs.push_back(pts[i][0]);
-                xList.push_back(xs);
-            } else {
-                bool valueAdded = false;
-                for(int xArrayIt = 0 ; xArrayIt < xList.size() ; xArrayIt ++){
-                    
-                    //TODO rajouter gestion de largeur de rang
-                    //Pour toutes les listes de x on vérifie si on peux les classés
-                    if((pts[i][0] <= xList.at(xArrayIt).at(0) + MARGE_ERREUR) &&
-                       (pts[i][0] >= xList.at(xArrayIt).at(0) - MARGE_ERREUR))
-                    {
-                        xList.at(xArrayIt).push_back(pts[i][0]);
-                        //cout << "Added To Array : x : "<< pts[i][0] << "  y : " << pts[i][1] << endl;
-                        valueAdded = true;
-                    }
-                    //Si la valeur à été ajoutée on sort de la boucle
-                    if(valueAdded){
-                        break;
-                    }
-                }
-                //On créer une liste pour le x non classé
-                if(!valueAdded){
+            //Si les coordonnées du points sont différents de 0
+            if((pts[i][0] != 0 && pts[i][1] != 0)){
+                
+                //Première valeur ajoutée
+                if(xList.size() == 0) {
                     vector<double> xs = *new vector<double>();
                     xs.push_back(pts[i][0]);
                     xList.push_back(xs);
-                    //cout << "New Array x : "<< pts[i][0] << "  y : " << pts[i][1] << endl;
+                } else {
+                    bool valueAdded = false;
+                    for(int xArrayIt = 0 ; xArrayIt < xList.size() ; xArrayIt ++){
+                        //Pour toutes les listes de x on vérifie si on peux les classés
+                        if( ( pts[i][0] <= xList.at(xArrayIt).at(0) + margeErreur ) &&
+                            ( pts[i][0] >= xList.at(xArrayIt).at(0) - margeErreur ) )
+                        {
+                            xList.at(xArrayIt).push_back(pts[i][0]);
+                            //cout << "Added To Array : x : "<< pts[i][0] << "  y : " << pts[i][1] << endl;
+                            valueAdded = true;
+                        }
+                        //Si la valeur à été ajoutée on sort de la boucle
+                        if(valueAdded){
+                            break;
+                        }
+                    }
+                    //On créer une liste pour le x non classé
+                    if(!valueAdded){
+                        vector<double> xs = *new vector<double>();
+                        xs.push_back(pts[i][0]);
+                        xList.push_back(xs);
+                        //cout << "New Array x : "<< pts[i][0] << "  y : " << pts[i][1] << endl;
+                    }
                 }
             }
         }
-    }
+    //}
     
     //On ne récupère que les deux liste avec le plus de valeur
     vector<vector<double>> xListRetains;
-    std::sort (xList.begin(), xList.end(), less_vectors);
     if(xList.size() > 2){
-        xListRetains.push_back(xList.at(xList.size()-1));
-        xListRetains.push_back(xList.at(xList.size()-2));
-        if(xListRetains.size() > 0 &&
-           xListRetains.at(0).size() > 2 &&
-           xListRetains.at(1).size() > 2) {
-            cout << "Rangé detectée" << endl;
+        for(int xIt = 0 ; xIt < xList.size() ; xIt++){
+            for(int xIt2 = 0 ; xIt2 < xList.size() ; xIt2++){
+                double moyenne = getMoyenne(xList.at(xIt));
+                double moyenne2 = getMoyenne(xList.at(xIt2));
+                double largeur = abs(moyenne-moyenne2);
+                //cout <<"Largeur : " << largeur << endl;
+                
+                if( largeur <= largeurRangee + margeErreurLargeurRangee &&
+                    largeur >= largeurRangee - margeErreurLargeurRangee &&
+                    xList.at(xIt).size() > 2 &&
+                    xList.at(xIt2).size() > 2 ){
+                    
+                    if( xListRetains.size() == 0 ){
+                        xListRetains.push_back(xList.at(xIt2));
+                        xListRetains.push_back(xList.at(xIt));
+                    }
+                    else {
+                        double oldLargeur = abs(getMoyenne(xListRetains.at(1))-getMoyenne(xListRetains.at(0)));
+                        if( xList.at(xIt2).size() > xListRetains.at(0).size() &&
+                            xList.at(xIt).size() > xListRetains.at(1).size() &&
+                            (oldLargeur - largeurRangee) > (largeur - largeurRangee) ){
+                            
+                            //A partir d'un certain nombre de point trier
+                            if(oldX1.size() % 10 == 0){
+                                trierXliste(oldX1);
+                            }
+                            
+                            if(oldX2.size() % 10 == 0){
+                                trierXliste(oldX2);
+                            }
+                            
+                            //On prend en compte les anciennes positions
+                            if(oldX2.size() > 50 && oldX1.size() > 50){
+                                double moyenneOldX1 = getMoyenne(oldX1);
+                                double moyenneOldX2 = getMoyenne(oldX2);
+                                if( moyenne > ( moyenneOldX1-margeErreur ) &&
+                                    moyenne < ( moyenneOldX1+margeErreur ) &&
+                                    moyenne2 > ( moyenneOldX2-margeErreur ) &&
+                                    moyenne2 < ( moyenneOldX2+margeErreur ) ){
+                                    
+                                    xListRetains.clear();
+                                    xListRetains.push_back(xList.at(xIt2));
+                                    oldX1.push_back(moyenne);
+                                    xListRetains.push_back(xList.at(xIt));
+                                    oldX2.push_back(moyenne2);
+                                    this->oldX1.erase(this->oldX1.begin());
+                                    this->oldX2.erase(this->oldX2.begin());
+                                }
+                            }
+                            //Pas assez de point pour prendre en compte les anciennes position
+                            else {
+                                xListRetains.clear();
+                                xListRetains.push_back(xList.at(xIt2));
+                                oldX1.push_back(moyenne);
+                                xListRetains.push_back(xList.at(xIt));
+                                oldX2.push_back(moyenne2);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if(xListRetains.size() > 2){
+            cout << "Rangée detectée" << endl;
         }
     }
+    cout << "Taille :" << oldX1.size() << " : " << oldX2.size() << endl;
     return xListRetains;
 }
 
+void LidarTreatments::trierXliste(vector<double> oldx){    
+    double sum = 0;
+    vector<double> oldXTmp;
+    int iteration = 1;
+    
+    for(auto xIt = oldx.begin(); xIt != oldx.end() ; xIt++){
+        int index = xIt-oldx.begin();
+        sum += oldx.at(index);
+        double moyenne = sum/iteration;
+        if(oldx.at(index) >  moyenne-margeErreur &&
+            oldx.at(index) <  moyenne+margeErreur){
+
+            oldXTmp.push_back(oldx.at(index));
+        }else{
+            sum -=  oldx.at(index);
+            iteration -=1;
+        }
+        iteration++;
+    }
+    oldx = oldXTmp;
+    cout << "" <<endl;
+}
+
+double LidarTreatments::getMoyenne(vector<double> xList){
+    double moyenne = 0;
+    for(double x : xList){
+        moyenne += x;
+    }
+    return moyenne/xList.size();
+}

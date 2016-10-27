@@ -49,15 +49,25 @@
 #define PORT_ROBOT_MOTOR 5555
 #define DEFAULT_HOST_ADDRESS "10.0.1.1"
 
-#define CONNECT_TO_ROBOT    1
+#define CONNECT_TO_ROBOT    0
 #define DRAW_IMU_AXIS       0
 #define SCREEN_WIDTH        800
 #define SCREEN_HEIGHT       600
-
+#define COEFF_SDL_RANGEE_LINE 5
 #define DEFAULT_VAR_min_radius      200
 #define DEFAULT_VAR_max_radius      2000
 #define DEFAULT_VAR_packet_radius   300
 #define DEFAULT_VAR_packet_density  2
+#define DEFAULT_VAR_maxPointBumper 	4
+#define DEFAULT_VAR_maxPointSecu 	20
+#define DEFAULT_VAR_moveAuto		0
+
+//SLE define
+#define CORREC_ROTATION 1.789 //sans dimension
+#define PAS_TICK 6.465 //cm
+#define RAYON_CIRCON_RECT 27.605 //cm
+#define TAUX_ERREUR_ROTATION 0.05 //5%
+
 
 using namespace std;
 using namespace std::chrono;
@@ -123,9 +133,12 @@ private:
     int Thomas_button(int x, int y, int w, int h, int r = 255, int g = 255, int b = 255) ;
     int Thomas_box(int x, int y, int &Var, int var_default) ;
     int Thomas_box(int x, int y, int &Var, int var_default, char* title) ;
+    int Thomas_box(int x, int y, double &Var, int var_default, char* title) ;
     int Thomas_box(int x, int y, char* title) ;
     void draw_interface();
     void move();
+    double getXfromLidarToSDL(double x);
+    double getYfromLidarToSDL(double y);
     
 private:
     LidarTreatments* lidarTreatments;
@@ -172,6 +185,9 @@ private:
     std::mutex ha_accel_packet_ptr_access_;
     HaAcceleroPacketPtr ha_accel_packet_ptr_;
     
+    //SLE status de la direction
+    int dirStatus = -1;
+    
 private:
     std::mutex ha_odo_packet_ptr_access;
     HaOdoPacketPtr ha_odo_packet_ptr_;
@@ -217,6 +233,9 @@ private:
     int var_max_radius ;
     int var_packet_radius ;
     int var_packet_density ;
+    int var_maxPointBumper;
+    int var_maxPointSecu;
+    int var_moveAuto;
 };
 
 #endif

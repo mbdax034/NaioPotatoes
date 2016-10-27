@@ -9,7 +9,6 @@ Robot::Robot(int SCREEN_WIDTH,int SCREEN_HEIGHT ){
     
     robot.x=SCREEN_WIDTH/2 ;
     robot.y=SCREEN_HEIGHT/2;
-    
     int widthBump= 20;
     int heightBump= 40;
     
@@ -145,17 +144,20 @@ void Robot::drawBumpers(){
     
     drawBlockRect(blcBumperRight,robot.x,robot.y);
 }
-void Robot::scan(){
+void Robot::scan(int maxPointBumper,int maxPointSecu){
     blcBumperLeft.hasCollision=false;
     blcBumperRight.hasCollision=false;
     blcSecu.hasCollision=false;
     
+    blcBumperLeft.nbPoints=0;
+    blcBumperRight.nbPoints=0;
+    blcSecu.nbPoints=0;
+    
     int x,y;
     for( int i = 0 ; i < 180 ; i++ ) {
-        
         x=lidar[i][0]*0.1;
         y=-lidar[i][1]*0.1;
-        cout <<"X:"<<x<< " Y:"<<y<< endl;
+        
         Block p;
         p.w=10;
         p.h=10;
@@ -163,25 +165,30 @@ void Robot::scan(){
         p.x=robot.x+(x);
         p.y=robot.y+(y);
         
-        
-        
-        
         p.rgb.r=0;
         p.rgb.g=0;
         p.rgb.b=255;
         
         drawBlockRect(p);
-        if(blcBumperLeft.hasCollision==false)
-            blcBumperLeft.hasCollision=pointInBlock(x,y,blcBumperLeft);
         
-        if(blcBumperRight.hasCollision==false)
-            blcBumperRight.hasCollision=pointInBlock(x,y,blcBumperRight);
+        if(pointInBlock(x,y,blcBumperLeft))
+            blcBumperLeft.nbPoints++;
         
-        if(blcSecu.hasCollision==false)
-            blcSecu.hasCollision=pointInBlock(x,y,blcSecu);
+        if(pointInBlock(x,y,blcBumperRight))
+            blcBumperRight.nbPoints++;
         
+        if(pointInBlock(x,y,blcSecu))
+            blcSecu.nbPoints++;
     }
     
+    if(blcBumperLeft.nbPoints>=maxPointBumper)
+        blcBumperLeft.hasCollision=true;
+    
+    if(blcBumperRight.nbPoints>=maxPointBumper)
+        blcBumperRight.hasCollision=true;
+    
+    if(blcSecu.nbPoints>=maxPointSecu)
+        blcSecu.hasCollision=true;
     
     
 }
