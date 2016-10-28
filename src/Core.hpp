@@ -49,11 +49,11 @@
 #define PORT_ROBOT_MOTOR 5555
 #define DEFAULT_HOST_ADDRESS "10.0.1.1"
 
-#define CONNECT_TO_ROBOT    0
+#define CONNECT_TO_ROBOT    1
 #define DRAW_IMU_AXIS       0
 #define SCREEN_WIDTH        800
 #define SCREEN_HEIGHT       600
-#define COEFF_SDL_RANGEE_LINE 5
+#define COEFF_SDL_RANGEE_LINE 50
 #define DEFAULT_VAR_min_radius      200
 #define DEFAULT_VAR_max_radius      2000
 #define DEFAULT_VAR_packet_radius   300

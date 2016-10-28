@@ -132,7 +132,7 @@ vector<vector<double>> LidarTreatments::getRangeeFromLidar(double** pts){
                             }
                             
                             //On prend en compte les anciennes positions
-                            if(oldX2.size() > 50 && oldX1.size() > 50){
+                            if(oldX2.size() >50 && oldX1.size() > 50){
                                 double moyenneOldX1 = getMoyenne(oldX1);
                                 double moyenneOldX2 = getMoyenne(oldX2);
                                 if( moyenne > ( moyenneOldX1-margeErreur ) &&
