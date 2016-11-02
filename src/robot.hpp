@@ -60,6 +60,7 @@ class Robot {
     void drawRobot();
     void drawBumpers();
     void scan(int maxPointBumper,int maxPointSecu);
+<<<<<<< HEAD
     
 =======
     void scanRangee(LidarTreatments &lidarTreatment, vector<double> x1, vector<double> x2);
