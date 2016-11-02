@@ -53,7 +53,11 @@
 #define DRAW_IMU_AXIS       0
 #define SCREEN_WIDTH        800
 #define SCREEN_HEIGHT       600
+<<<<<<< HEAD
 #define COEFF_SDL_RANGEE_LINE 1
+=======
+#define COEFF_SDL_RANGEE_LINE 50
+>>>>>>> sandbox
 #define DEFAULT_VAR_min_radius      200
 #define DEFAULT_VAR_max_radius      2000
 #define DEFAULT_VAR_packet_radius   300
@@ -62,6 +66,14 @@
 #define DEFAULT_VAR_maxPointSecu 	20
 #define DEFAULT_VAR_moveAuto		0
 
+<<<<<<< HEAD
+=======
+//SLE define
+#define CORREC_ROTATION 1.789 //sans dimension
+#define PAS_TICK 6.465 //cm
+#define RAYON_CIRCON_RECT 27.605 //cm
+#define TAUX_ERREUR_ROTATION 0.05 //5%
+>>>>>>> sandbox
 
 
 using namespace std;
@@ -128,6 +140,7 @@ private:
     int Thomas_button(int x, int y, int w, int h, int r = 255, int g = 255, int b = 255) ;
     int Thomas_box(int x, int y, int &Var, int var_default) ;
     int Thomas_box(int x, int y, int &Var, int var_default, char* title) ;
+    int Thomas_box(int x, int y, double &Var, int var_default, char* title) ;
     int Thomas_box(int x, int y, char* title) ;
     void draw_interface();
     void move();
@@ -178,6 +191,9 @@ private:
     
     std::mutex ha_accel_packet_ptr_access_;
     HaAcceleroPacketPtr ha_accel_packet_ptr_;
+    
+    //SLE status de la direction
+    int dirStatus = -1;
     
 private:
     std::mutex ha_odo_packet_ptr_access;
