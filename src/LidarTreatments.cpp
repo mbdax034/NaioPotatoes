@@ -166,7 +166,7 @@ vector<vector<double>> LidarTreatments::getRangeeFromLidar(double** pts){
             cout << "Rangée detectée" << endl;
         }
     }
-    cout << "Taille :" << oldX1.size() << " : " << oldX2.size() << endl;
+    //cout << "Taille :" << oldX1.size() << " : " << oldX2.size() << endl;
     return xListRetains;
 }
 

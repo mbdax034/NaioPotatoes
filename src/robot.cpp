@@ -75,6 +75,7 @@ bool Robot::pointInBlock(int point_x, int point_y, Block blc) {
     
     return false ;
 }
+
 void Robot::drawBlockRect(Block bp, int tx, int ty){
     
     SDL_SetRenderDrawColor( context, bp.rgb.r, bp.rgb.g, bp.rgb.b, 100 ); // the rect color (solid red)
@@ -90,11 +91,7 @@ void Robot::drawBlockRect(Block bp, int tx, int ty){
 
 
 void Robot::drawBlockSecurity(){
-    
-    
-    
-    
-    if(blcSecu.hasCollision){
+    if(blcSecu.mustBump){
         blcSecu.rgb.r=255;
         blcSecu.rgb.g=100;
         blcSecu.rgb.b=100;
@@ -103,17 +100,11 @@ void Robot::drawBlockSecurity(){
         blcSecu.rgb.g=50;
         blcSecu.rgb.b=10;
     }
-    
     drawBlockRect(blcSecu,robot.x,robot.y);
-    
 }
 
 void Robot::drawRobot(){
-    
-    
-    
     drawBlockRect(blcRobot,robot.x,robot.y);
-    
 }
 
 void Robot::drawBumpers(){
@@ -128,13 +119,13 @@ void Robot::drawBumpers(){
     rgbWarning.g=255;
     rgbWarning.b=0;
     
-    if(blcBumperLeft.hasCollision){
+    if(blcBumperLeft.mustBump){
         blcBumperLeft.rgb=rgbWarning;
     }else{
         blcBumperLeft.rgb=rgbNormale;
     }
     
-    if(blcBumperRight.hasCollision){
+    if(blcBumperRight.mustBump){
         blcBumperRight.rgb=rgbWarning;
     }else{
         blcBumperRight.rgb=rgbNormale;
@@ -145,9 +136,7 @@ void Robot::drawBumpers(){
     drawBlockRect(blcBumperRight,robot.x,robot.y);
 }
 void Robot::scan(int maxPointBumper,int maxPointSecu){
-    blcBumperLeft.hasCollision=false;
-    blcBumperRight.hasCollision=false;
-    blcSecu.hasCollision=false;
+    
     
     blcBumperLeft.nbPoints=0;
     blcBumperRight.nbPoints=0;
@@ -177,37 +166,89 @@ void Robot::scan(int maxPointBumper,int maxPointSecu){
         if(pointInBlock(x,y,blcBumperRight))
             blcBumperRight.nbPoints++;
         
-        if(pointInBlock(x,y,blcSecu))
+        if(pointInBlock(x,y,blcSecu)){
             blcSecu.nbPoints++;
+        }
     }
     
-    if(blcBumperLeft.nbPoints>=maxPointBumper)
-        blcBumperLeft.hasCollision=true;
+    if(blcBumperLeft.nbPoints>=maxPointBumper){
+        blcBumperLeft.mustBump=true;
+    }else {
+        blcBumperLeft.mustBump =false;
+    }
     
-    if(blcBumperRight.nbPoints>=maxPointBumper)
-        blcBumperRight.hasCollision=true;
+    if(blcBumperRight.nbPoints>=maxPointBumper){
+        blcBumperRight.mustBump=true;
+    }else {
+        blcBumperRight.mustBump=false;
+    }
     
-    if(blcSecu.nbPoints>=maxPointSecu)
-        blcSecu.hasCollision=true;
-    
-    
+    if(blcSecu.nbPoints>=maxPointSecu){
+        blcSecu.mustBump=true;
+    } else {
+        blcSecu.mustBump=false;
+    }
 }
 
+void Robot::scanRangee(LidarTreatments &lidar, vector<double> x1, vector<double> x2){
+    int m1=lidar.getMoyenne(x1)/10;
+    int m2=lidar.getMoyenne(x2)/10;
+    
+    int coef=1;
 
+    if(this->pointInBlock(m1,this->blcBumperLeft.y*coef,this->blcBumperLeft) || this->pointInBlock(m2,this->blcBumperLeft.y*coef,this->blcBumperLeft)){
+        this->blcBumperLeft.mustBump=true;
+        cout << "Collision ligne 1" << endl;
+    }
+    
+    if(this->pointInBlock(m1,this->blcBumperRight.y*coef,this->blcBumperRight) || this->pointInBlock(m2,this->blcBumperRight.y*coef,this->blcBumperRight)){
+        this->blcBumperRight.mustBump=true;
+        cout << "Collision ligne 2" << endl;
+    }
+    rangeeInBlockSecu(m1, m2);
+}
+
+void Robot::rangeeInBlockSecu(double x1, double x2){
+    if( x1 < blcSecu.x+blcSecu.w &&
+        x1 > blcSecu.x ){
+        blcBumperRight.hasHardCollision = true;
+            cout << "detecte la range de droite dans le bloc secu" << endl;
+    } else {
+        blcBumperRight.hasHardCollision = false;
+    }
+    if( x2 < blcSecu.x+blcSecu.w &&
+       x2 > blcSecu.x ){
+        blcBumperLeft.hasHardCollision = true;
+        cout << "detecte la range de gauche dans le bloc secu" << endl;
+    }else {
+        blcBumperLeft.hasHardCollision = false;
+    }
+}
 
 bool Robot::moveForaward(){
     
     bool isMove=false;
-    if(blcSecu.hasCollision){
+    
+    if(blcSecu.mustBump){
         speedLeft = 0;
         speedRight = 0;
         isMove=true;
     }
-    else if (  blcBumperRight.hasCollision ) { // bumper Right
+    else if ( blcBumperRight.hasHardCollision ){
+        speedLeft = 4;
+        speedRight = 12*coefV;
+        isMove=true;
+    }
+    else if ( blcBumperLeft.hasHardCollision ){
+        speedRight = 4;
+        speedLeft = 12*coefV;
+        isMove=true;
+    }
+    else if (  blcBumperRight.mustBump ) { // bumper Right
         speedLeft = 4;
         speedRight = 8*coefV;
         isMove=true;
-    } else if(  blcBumperLeft.hasCollision) {// bumper Left
+    } else if(  blcBumperLeft.mustBump) {// bumper Left
         speedLeft = 8*coefV;
         speedRight = 4;
         isMove = true;
